@@ -1,5 +1,5 @@
 -- Dev
--- Things you actively use for coding.
+-- Plugins you actively use for coding.
 
 --    Sections:
 --       ## SNIPPETS
@@ -87,7 +87,7 @@ return {
   --  https://github.com/lewis6991/gitsigns.nvim
   {
     "lewis6991/gitsigns.nvim",
-    enabled = vim.fn.executable "git" == 1,
+    enabled = vim.fn.executable("git") == 1,
     event = "User BaseGitFile",
     opts = function()
       local get_icon = require("base.utils").get_icon
@@ -120,7 +120,7 @@ return {
   --  	keepBackup = false
   {
     "tpope/vim-fugitive",
-    enabled = vim.fn.executable "git" == 1,
+    enabled = vim.fn.executable("git") == 1,
     dependencies = { "tpope/vim-rhubarb" },
     cmd = {
       "Gvdiffsplit",
@@ -139,7 +139,7 @@ return {
       "Gstatus",
     },
     config = function()
-      -- NOTE: On vimplugins we use config instead of opts.
+      -- NOTE: On vim plugins we use config instead of opts.
       vim.g.fugitive_no_maps = 1
     end,
   },
@@ -162,6 +162,7 @@ return {
         -- "Struct",
       },
       open_automatic = false, -- Open if the buffer is compatible
+      nerd_font = (vim.g.fallback_icons_enabled and false) or true,
       autojump = true,
       link_folds_to_tree = false,
       link_tree_to_folds = false,
@@ -218,6 +219,9 @@ return {
     event = "User BaseFile",
     opts = {
       notify = { enabled = false },
+      tree = {
+          icon_set = "default" -- "nerd", "codicons", "default", "simple"
+      },
       panel = {
           orientation = "bottom",
           panel_size = 10,
@@ -283,13 +287,24 @@ return {
   --  Note: If you change the build command, wipe ~/.local/data/nvim/lazy
   {
     "iamcco/markdown-preview.nvim",
-    build = function() vim.fn["mkdp#util#install"]() end,
-    ft = { "markdown" },
-    cmd = {
-      "MarkdownPreview",
-      "MarkdownPreviewStop",
-      "MarkdownPreviewToggle",
-    },
+    build = function(plugin)
+      -- guard clauses
+      local yarn = (vim.fn.executable("yarn") and "yarn")
+                   or (vim.fn.executable("npx") and "npx -y yarn")
+                   or nil
+      if not yarn then error("Missing `yarn` or `npx` in the PATH") end
+
+      -- run cmd
+      local cd_cmd = "!cd " .. plugin.dir .. " && cd app"
+      local yarn_install_cmd = "COREPACK_ENABLE_AUTO_PIN=0 " .. yarn .. " install --frozen-lockfile"
+      vim.cmd(cd_cmd .. " && " .. yarn_install_cmd)
+    end,
+    init = function()
+      local plugin = require("lazy.core.config").spec.plugins["markdown-preview.nvim"]
+      vim.g.mkdp_filetypes = require("lazy.core.plugin").values(plugin, "ft", true)
+    end,
+    ft = { "markdown", "markdown.mdx" },
+    cmd = { "MarkdownPreviewToggle", "MarkdownPreview", "MarkdownPreviewStop" },
   },
 
   --  [markdown markmap]
@@ -320,7 +335,7 @@ return {
           },
         },
         ui = {
-          prompt_icon = ">",
+          prompt_icon = require("base.utils").get_icon("PromptPrefix"),
         },
       }
     end,
@@ -349,13 +364,7 @@ return {
   {
     "NMAC427/guess-indent.nvim",
     event = "User BaseFile",
-    config = function(_, opts)
-      require("guess-indent").setup(opts)
-      vim.cmd.lua {
-        args = { "require('guess-indent').set_from_buffer('auto_cmd')" },
-        mods = { silent = true },
-      }
-    end,
+    opts = {}
   },
 
   --  COMPILER ----------------------------------------------------------------
@@ -375,6 +384,8 @@ return {
 
   --  overseer [task runner]
   --  https://github.com/stevearc/overseer.nvim
+  --  If you need to close a task immediately:
+  --  press ENTER in the output menu on the task you wanna close.
   {
     "stevearc/overseer.nvim",
     cmd = {
@@ -393,23 +404,21 @@ return {
       "OverseerClearCache"
     },
     opts = {
-      -- Tasks are disposed 5 minutes after running to free resources.
-      -- If you need to close a task immediately:
-      -- press ENTER in the output menu on the task you wanna close.
-     task_list = { -- this refers to the window that shows the result
+     task_list = { -- the window that shows the results.
         direction = "bottom",
         min_height = 25,
         max_height = 25,
         default_detail = 1,
       },
-      -- component_aliases = { -- uncomment this to disable notifications
-      --   -- Components included in default will apply to all tasks
+      -- component_aliases = {
       --   default = {
-      --     { "display_duration", detail_level = 2 },
-      --     "on_output_summarize",
-      --     "on_exit_set_status",
-      --     --"on_complete_notify",
-      --     "on_complete_dispose",
+      --     -- Behaviors that will apply to all tasks.
+      --     "on_exit_set_status",                   -- don't delete this one.
+      --     "on_output_summarize",                  -- show last line on the list.
+      --     "display_duration",                     -- display duration.
+      --     "on_complete_notify",                   -- notify on task start.
+      --     "open_output",                          -- focus last executed task.
+      --     { "on_complete_dispose", timeout=300 }, -- dispose old tasks.
       --   },
       -- },
     },
@@ -809,7 +818,7 @@ return {
       "sidlatau/neotest-dart",
       "Issafalcon/neotest-dotnet",
       "jfpedroza/neotest-elixir",
-      "nvim-neotest/neotest-go",
+      "fredrikaverpil/neotest-golang",
       "rcasia/neotest-java",
       "nvim-neotest/neotest-jest",
       "olimorris/neotest-phpunit",
@@ -824,7 +833,7 @@ return {
           require("neotest-dart"),
           require("neotest-dotnet"),
           require("neotest-elixir"),
-          require("neotest-go"),
+          require("neotest-golang"),
           require("neotest-java"),
           require("neotest-jest"),
           require("neotest-phpunit"),
@@ -860,7 +869,7 @@ return {
   --  If you use other framework or language, refer to nvim-coverage docs:
   --  https://github.com/andythigpen/nvim-coverage/blob/main/doc/nvim-coverage.txt
   {
-    "zeioth/nvim-coverage", -- Our fork until all ourPRs are merged.
+    "zeioth/nvim-coverage", -- Our fork until all our PRs are merged.
     cmd = {
       "Coverage",
       "CoverageLoad",
@@ -886,7 +895,7 @@ return {
   -- This plugin is necessary for using <C-]> (go to ctag).
   {
     "skywind3000/gutentags_plus",
-    ft = { "c", "cpp" },
+    ft = { "c", "cpp", "lisp" },
     dependencies = { "ludovicchabant/vim-gutentags" },
     config = function()
       -- NOTE: On vimplugins we use config instead of opts.
